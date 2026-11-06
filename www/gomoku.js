@@ -1,0 +1,35 @@
+const board=document.querySelector('#board'), title=document.querySelector('#status-title'), detail=document.querySelector('#status-detail'), indicator=document.querySelector('#turn-indicator'), retry=document.querySelector('#retry'), reset=document.querySelector('#reset');
+let state=null, sending=false, generation=0, lastHistoryRevision=null, shownResultGame=null;
+async function request(path,body){await window.sessionReady;const options=body===undefined?{}:{method:'POST',headers:{'Content-Type':'application/json','X-Requested-With':'Gomoku'},body:JSON.stringify(body)};const response=await fetch(path,{...options,cache:'no-store'});let data=await response.json();if(!response.ok)throw Error(data.error||'请求失败');return data;}
+function render(){if(!state)return;if(state.revision!==lastHistoryRevision){lastHistoryRevision=state.revision;window.dispatchEvent(new Event('game-updated'));}board.replaceChildren();for(let r=0;r<15;r++)for(let c=0;c<15;c++){const cell=document.createElement('button');cell.className='cell';cell.setAttribute('aria-label',`第 ${r+1} 行，第 ${c+1} 列${state.board[r][c]?'，已有棋子':''}`);const v=state.board[r][c];if(v){const piece=document.createElement('span');piece.className='stone '+(v===1?'black':'white');cell.append(piece);}cell.onclick=()=>move(r,c);board.append(cell)}const hc=state.human_color||1, ac=3-hc, local=state.opponent==='fivechess'; const onlineOption=document.querySelector('#opponent-select option[value=deepseek]'); document.querySelector('#import-legacy').hidden=state.deepseek_enabled===false || state.moves>0; onlineOption.disabled=state.deepseek_enabled===false; if(onlineOption.disabled)onlineOption.textContent='DeepSeek（公开体验未开放）'; document.querySelector('#opponent-name').textContent=local?'FiveChess':'DeepSeek'; document.querySelector('#human-stone').className='stone '+(hc===1?'black':'white'); document.querySelector('#ai-stone').className='stone '+(ac===1?'black':'white'); document.querySelector('#human-color').textContent=hc===1?'执黑 · 先手':'执白 · 后手'; document.querySelector('#ai-color').textContent=ac===1?'执黑 · 先手':'执白 · 后手'; document.querySelector('#move-count').textContent=state.moves+' 手';document.querySelector('#human-mark').classList.toggle('active',state.turn==='human');document.querySelector('#ai-mark').classList.toggle('active',state.turn==='ai');retry.hidden=!(state.turn==='ai'&&!sending&&!state.busy);if(state.winner){title.textContent=state.winner==='draw'?'平局':state.winner==='human'?'你赢了':state.ai_move_source==='fallback'?'电脑获胜（本地备用）':local?'FiveChess 获胜':'DeepSeek 获胜';detail.textContent='精彩的一局，点击重新开始再来一局。';indicator.textContent='对局结束';}else if(state.turn==='human'){title.textContent='轮到你落子';detail.textContent=(local||state.ai_configured)?(state.ai_move_source==='fallback'?'DeepSeek 未给出合法落点，本回合已使用本地备用策略。轮到你落子。':'你执'+(hc===1?'黑':'白')+'棋，请选择一个交叉点。'):'请在 deepseek-key.local.txt 填写 API Key 并重启服务。';indicator.textContent=hc===1?'● 黑棋回合':'○ 白棋回合';}else{title.textContent=sending||state.busy?(local?'FiveChess 思考中':'DeepSeek 思考中'):'等待电脑落子';detail.textContent=state.error||('电脑执'+(ac===1?'黑':'白')+'棋，正在分析棋局。');indicator.textContent=ac===1?'● 黑棋回合':'○ 白棋回合';}if(!('opponent' in state)){reset.disabled=true;detail.textContent='请重启 WebServer，然后刷新页面以启用 FiveChess。';}showResultIfNeeded();}
+function showError(error){detail.textContent=error.message||'连接失败，请检查服务是否启动。';title.textContent='暂时无法继续';if(state&&state.turn==='ai')retry.hidden=false;}
+async function sync(){try{state=await request('/api/game/state');render();}catch(e){showError(e)}}
+async function move(row,col){if(!state||state.turn!=='human'||sending||state.board[row][col])return;sending=true;const g=generation;let failure=null;try{const next=await request('/api/game/move',{row,col});if(g!==generation)return;state=next;render();if(state.turn==='ai'){sending=false;await ai();}}catch(e){failure=e}finally{if(g===generation){sending=false;render();if(failure)showError(failure)}}}
+async function ai(){if(sending||!state||state.turn!=='ai')return;sending=true;const g=generation;render();try{const next=await request('/api/game/ai',{});if(g===generation)state=next;}catch(e){if(g===generation){state.error=e.message;}}finally{if(g===generation){sending=false;render()}}}
+const resultDialog=document.querySelector('#result-dialog');
+function showResultIfNeeded(){
+  if(!state.winner || shownResultGame===state.game_id)return;
+  shownResultGame=state.game_id;
+  const opponent=state.opponent==='fivechess'?'FiveChess':'DeepSeek';
+  const fallback=state.winner==='ai' && state.ai_move_source==='fallback';
+  document.querySelector('#result-emblem').textContent=state.winner==='human'?'🏆':state.winner==='draw'?'🤝':'♟️';
+  document.querySelector('#result-title').textContent=state.winner==='human'?'恭喜你获胜！':state.winner==='draw'?'平局':fallback?'电脑获胜':opponent+' 获胜';
+  document.querySelector('#result-message').textContent=state.winner==='human'?'精彩的一局，你率先连成了五子！':state.winner==='draw'?'棋盘已满，双方平分秋色。':fallback?'本局最后一步由本地备用策略完成。':'对手率先连成五子，再来挑战一次吧！';
+  document.querySelector('#result-opponent').textContent=opponent;
+  document.querySelector('#result-color').textContent=(state.human_color||1)===1?'● 黑棋':'○ 白棋';
+  document.querySelector('#result-moves').textContent=state.moves+' 手';
+  document.querySelector('#result-new').disabled=reset.disabled;
+  resultDialog.showModal();
+}
+document.querySelector('#result-close').onclick=()=>resultDialog.close();
+document.querySelector('#result-board').onclick=()=>resultDialog.close();
+document.querySelector('#result-new').onclick=()=>{resultDialog.close();if(!reset.disabled)reset.click();};
+const newGameDialog=document.querySelector('#new-game-dialog'), confirmNew=document.querySelector('#confirm-new'), opponentSelect=document.querySelector('#opponent-select');
+opponentSelect.onchange=()=>{const local=opponentSelect.value==='fivechess';document.querySelector('#level-label').hidden=!local;document.querySelector('#opponent-note').textContent=local?'本地计算，无需 API Key。':'需要配置 DeepSeek API Key，调用可能产生费用。';};
+document.querySelector('#import-legacy').onclick=async()=>{try{state=await request('/api/game/import-legacy',{});render();window.dispatchEvent(new Event('game-updated'));}catch(e){document.querySelector('#history-list').textContent=e.message;}};
+retry.onclick=ai;
+reset.onclick=()=>{document.querySelector(`input[name="human-color"][value="${state?.human_color||1}"]`).checked=true;newGameDialog.showModal();};
+document.querySelector('#cancel-new').onclick=()=>newGameDialog.close();
+newGameDialog.addEventListener('click',e=>{if(e.target===newGameDialog)newGameDialog.close()});
+confirmNew.onclick=async()=>{const human_color=Number(document.querySelector('input[name="human-color"]:checked').value), opponent=opponentSelect.value, level=Number(document.querySelector('#level-select').value);confirmNew.disabled=true;try{const next=await request('/api/game/new',{human_color,opponent,level});generation++;sending=false;state=next;newGameDialog.close();render();if(state.turn==='ai')await ai();}catch(e){newGameDialog.close();showError(e)}finally{confirmNew.disabled=false}};
+sync();

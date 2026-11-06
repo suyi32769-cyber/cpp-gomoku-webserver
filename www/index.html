@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="theme-color" content="#24194c"><meta name="description" content="Yzh Lab 五子棋游戏大厅，与电脑对弈、查看棋谱和服务状态。"><title>棋妙对弈 · Yzh Lab</title><link rel="stylesheet" href="/home.css"></head>
+<body><div class="scene" aria-hidden="true"></div><div class="lobby">
+  <header class="topbar"><span class="brand" aria-label="Yzh Lab"><span class="brand-icon">棋</span><span>YZH<span class="brand-dot">·</span>LAB</span></span><span id="connection" class="connection"><i></i>正在连接</span><button id="account-button" class="account-button" type="button">登录 / 注册</button></header>
+  <main>
+    <section class="hero" aria-labelledby="title"><div class="headline"><div class="eyebrow"><span>✦</span> YZH'S GAME CORNER <span>✦</span></div><h1 id="title"><span>棋妙</span><strong>对弈</strong><small>GOMOKU</small></h1><p>一颗棋子，一场较量。<br>准备好和电脑来一局了吗？</p><div class="hero-tags"><span>● 黑棋先行</span><span>✦ 15 × 15 棋盘</span><span>♜ 本地保存</span></div></div><div class="hero-badge" aria-hidden="true"><div class="orbit"></div><span class="hero-stone white-stone"></span><span class="hero-stone black-stone"></span><span class="spark spark-a">✦</span><span class="spark spark-b">✧</span><span class="badge-label">READY TO PLAY!</span></div></section>
+    <section class="play-area" aria-label="游戏入口"><a class="big-card play-card" href="/gomoku.html"><div class="icon-circle"><span class="mini-stone"></span></div><div><span class="card-kicker">PLAYER VS AI</span><h2>开始对弈</h2><p id="game-status">黑白交锋，落子见真章</p></div><span class="arrow">↗</span><span class="play-shine" aria-hidden="true">✦</span></a><div class="side-cards"><a class="quick-card history-card" href="/gomoku.html#history-section"><span class="quick-icon">📜</span><div><h2>历史棋局</h2><p id="history-status">查看棋谱，重温每一步</p></div><span class="quick-arrow">↗</span></a><a class="quick-card monitor-card" href="/monitor.html"><span class="quick-icon">📊</span><div><h2>运行面板</h2><p>看看服务器正在做什么</p></div><span class="quick-arrow">↗</span></a></div><section class="leaderboard-card" aria-labelledby="leaderboard-title"><div class="leaderboard-heading"><div><span class="card-kicker">HALL OF FAME</span><h2 id="leaderboard-title">胜场排行榜</h2></div><span class="leaderboard-trophy" aria-hidden="true">🏆</span></div><ol id="leaderboard-list" class="leaderboard-list" aria-live="polite"><li class="leaderboard-message">正在加载排行榜…</li></ol><p class="leaderboard-note">账号对局 · 按胜场排序</p></section></section>
+
+    <section class="online-banner" aria-label="在线人数"><div class="online-avatar" aria-hidden="true">👥</div><div class="online-copy"><span class="online-kicker">PLAYERS ONLINE</span><h2>在线玩家 <span class="online-live"><i></i> LIVE</span></h2><p>最近 30 秒内活跃的玩家，含你自己</p></div><div class="online-total"><strong id="online-count" aria-live="polite">—</strong><span>人在线</span></div><button id="friends-open" class="friends-open" type="button">好友 <span id="friends-badge" hidden></span></button></section>
+
+  </main><footer><span>MADE FOR A LITTLE FUN <b>✦</b> BY YZH</span></footer>
+</div>
+<dialog id="friends-dialog" class="help-dialog friends-dialog" aria-labelledby="friends-title">
+  <div class="help-heading"><div><span class="modal-kicker">YOUR FRIENDS</span><h2 id="friends-title">好友中心</h2></div><button id="friends-close" type="button" aria-label="关闭好友中心">×</button></div>
+  <div id="friends-guest" hidden><p class="friends-hint">登录账号后，就可以添加好友、处理申请并查看在线状态。</p><button id="friends-login" class="friends-primary" type="button">登录 / 注册</button></div>
+  <div id="friends-content" hidden>
+    <form id="friends-form" class="friends-form"><label for="friends-username">通过用户名添加好友</label><div><input id="friends-username" required minlength="3" maxlength="24" pattern="[A-Za-z0-9_]+" placeholder="输入好友的用户名"><button class="friends-primary" type="submit">发送申请</button></div></form>
+    <p id="friends-notice" class="friends-notice" role="status" aria-live="polite"></p>
+    <div class="friends-section"><h3>收到的申请 <span id="friends-in-count"></span></h3><ul id="friends-incoming" class="friends-list"></ul></div>
+    <div class="friends-section"><div class="friends-list-heading"><h3>我的好友 <span id="friends-count"></span></h3><button id="friends-refresh" class="friends-refresh" type="button">刷新 ↻</button></div><p id="friends-online-summary" class="friends-hint">在线状态根据最近 30 秒的活动估算。</p><ul id="friends-list" class="friends-list"></ul></div>
+    <div class="friends-section"><h3>已发送的申请 <span id="friends-out-count"></span></h3><ul id="friends-outgoing" class="friends-list"></ul></div>
+  </div>
+</dialog>
+<dialog id="account-dialog" class="help-dialog account-dialog" aria-labelledby="account-title">
+  <div class="help-heading"><div><span class="modal-kicker">YOUR ACCOUNT</span><h2 id="account-title">登录账号</h2></div><button id="account-close" type="button" aria-label="关闭">×</button></div>
+  <p class="account-intro">登录后，棋局和历史棋谱跟随账号保存。</p>
+  <form id="account-form"><label>用户名<input id="account-username" name="username" autocomplete="username" required minlength="3" maxlength="24" pattern="[A-Za-z0-9_]+" placeholder="3–24 位字母、数字或下划线"></label><label>密码<input id="account-password" name="password" type="password" autocomplete="current-password" required minlength="10" maxlength="128" placeholder="至少 10 个字符"></label><p class="account-hint">注册会保留当前游客棋局；登录已有账号时，游客棋局转入历史，继续账号原棋局。用户名和胜场会显示在排行榜；暂不支持找回密码。</p><p id="account-error" class="account-error" role="alert"></p><button id="account-submit" class="account-submit" type="submit">登录</button></form>
+  <button id="account-switch" class="account-switch" type="button">没有账号？立即注册</button><button id="account-logout" class="account-switch" type="button" hidden>退出登录</button>
+</dialog>
+
+<script src="/session.js" defer></script><script src="/home.js" defer></script><script src="/friends.js" defer></script></body></html>

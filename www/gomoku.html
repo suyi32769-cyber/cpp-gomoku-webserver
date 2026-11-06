@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>五子棋 · Yzh</title>
+  <link rel="stylesheet" href="/gomoku.css">
+  <link rel="stylesheet" href="/history.css">
+  <link rel="stylesheet" href="/playful-game.css">
+</head>
+<body>
+<div class="shell">
+  <nav><span class="brand">棋 <span>YZH · LAB</span></span><div><a class="back" href="/monitor.html">📊 运行面板</a> <a class="back" href="/">🏠 返回大厅</a></div></nav>
+  <main>
+    <div class="heading"><div><div class="eyebrow"><span></span> PLAYER VS AI</div><h1>五子棋 <em>对战！</em></h1><p>选择执黑或执白，连成五子就能获胜 ✨</p></div><div class="badge">🎮 人机对弈</div></div>
+    <div class="layout">
+      <section class="board-card"><div class="board-head"><div><span class="tiny">THE BOARD</span><h2>对弈棋盘 <small>15 × 15</small></h2></div><div class="turn-indicator" id="turn-indicator">准备中</div></div>
+        <div class="board-wrap"><div id="board" class="board" role="grid" aria-label="五子棋棋盘"></div></div>
+        <div class="board-foot"><span>黑棋先行 · 五子连线获胜</span><span id="move-count">0 手</span></div>
+      </section>
+      <aside>
+        <section class="panel"><div class="panel-label">THE MATCH <span>01</span></div><div class="player"><span id="human-stone" class="stone black"></span><div><strong>你</strong><small id="human-color">执黑 · 先手</small></div><i id="human-mark">●</i></div><div class="versus">VS</div><div class="player"><span id="ai-stone" class="stone white"></span><div><strong id="opponent-name">电脑</strong><small id="ai-color">执白 · 后手</small></div><i id="ai-mark">●</i></div></section>
+        <section class="panel status"><div class="panel-label">MATCH STATUS <span>02</span></div><h2 id="status-title">正在连接</h2><p id="status-detail" aria-live="polite">正在获取棋局状态…</p><button id="retry" class="secondary" hidden>重试电脑落子</button><button id="reset" class="primary">重新开始 <span>↗</span></button><p class="note">棋局保存在本机，重启服务后可继续。DeepSeek 模式的 API 请求可能产生费用。</p></section>
+        <section class="panel history" id="history-section"><div class="panel-label">MATCH HISTORY <span>03</span></div><div class="history-head"><h2>历史棋局</h2><button id="refresh-history" type="button">刷新 ↻</button></div><p class="history-hint">最近 30 局 · 点击查看棋谱</p><button id="import-legacy" class="legacy-import" type="button" hidden>导入本机旧版棋谱</button><div id="history-list" class="history-list" aria-live="polite">正在加载…</div></section>
+        <section class="tip"><span>✦</span><p><strong>游戏规则</strong><br>横、竖、斜方向率先连成五子获胜。本局采用无禁手规则。</p></section>
+      </aside>
+    </div>
+  </main>
+  <footer>BUILT WITH C++ &nbsp; / &nbsp; POWERED BY FIVECHESS & DEEPSEEK <span>YZH LAB © 2026</span></footer>
+</div>
+<dialog id="result-dialog" class="result-dialog" aria-labelledby="result-title" aria-describedby="result-message">
+  <div class="result-decoration" aria-hidden="true"><span>✦</span><span>✧</span><span>✦</span></div>
+  <button id="result-close" class="result-close" type="button" aria-label="关闭结果，查看棋盘">×</button>
+  <div class="result-emblem" id="result-emblem" aria-hidden="true">🏆</div>
+  <div class="result-kicker">MATCH COMPLETE</div>
+  <h2 id="result-title">对局结束</h2>
+  <p id="result-message"></p>
+  <div class="result-stats"><div><span>对手</span><strong id="result-opponent"></strong></div><div><span>你的棋子</span><strong id="result-color"></strong></div><div><span>总手数</span><strong id="result-moves"></strong></div></div>
+  <div class="result-actions"><button id="result-board" class="secondary" type="button">查看棋盘</button><button id="result-new" class="primary" type="button">再来一局 ↗</button></div>
+</dialog>
+<dialog id="new-game-dialog" class="replay-dialog new-game-dialog" aria-labelledby="new-game-title"><div class="replay-top"><div><div class="panel-label">NEW MATCH</div><h2 id="new-game-title">选择你的棋子</h2></div><button id="cancel-new" type="button" aria-label="关闭">×</button></div><p>黑棋先行。开始新对局会结束当前棋局。</p><div class="color-choices"><label><input type="radio" name="human-color" value="1" checked><span><i class="stone black"></i><b>执黑先行</b></span></label><label><input type="radio" name="human-color" value="2"><span><i class="stone white"></i><b>执白后行</b></span></label></div><div class="opponent-options"><label>电脑对手<select id="opponent-select"><option value="fivechess">FiveChess 本地引擎</option><option value="deepseek">DeepSeek 在线对手</option></select></label><label id="level-label">引擎难度<select id="level-select"><option value="2">简单</option><option value="3" selected>普通</option><option value="4">困难</option></select></label><small id="opponent-note">本地计算，无需 API Key。</small></div><button id="confirm-new" class="primary" type="button">开始新对局 ↗</button></dialog>
+<dialog id="replay-dialog" class="replay-dialog"><div class="replay-top"><div><div class="panel-label">MATCH REPLAY</div><h2 id="replay-title">棋局复盘</h2></div><button id="replay-close" type="button" aria-label="关闭复盘">×</button></div><div id="replay-board" class="board replay-board" aria-label="复盘棋盘"></div><div id="replay-caption" class="replay-caption" aria-live="polite">开局</div><div class="replay-actions"><button id="replay-prev" class="secondary" type="button">← 上一步</button><button id="replay-next" class="primary" type="button">下一步 →</button></div></dialog>
+<script src="/session.js" defer></script>
+<script src="/gomoku.js" defer></script>
+<script src="/history.js" defer></script>
+</body></html>

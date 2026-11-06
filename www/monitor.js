@@ -1,0 +1,20 @@
+const $=id=>document.getElementById(id);
+let lastCompleted=null, lastCpu=null, polling=false, testRunning=false, pulseTimer;
+const fmt=n=>Number(n).toLocaleString('zh-CN');
+function uptime(s){s=Math.max(0,Number(s)||0);const h=Math.floor(s/3600),m=Math.floor(s%3600/60),sec=s%60;return h?`${h}小时 ${m}分`:`${m}分 ${sec}秒`;}
+function display(m){
+  $('active').textContent=fmt(m.active);$('completed').textContent=fmt(m.completed);$('busy').textContent=fmt(m.worker_active);$('total').textContent=' / '+fmt(m.worker_total);$('events').textContent=fmt(m.epoll_events);
+  $('flow-count').textContent=fmt(m.completed);$('uptime').textContent=uptime(m.uptime_seconds);$('working-count').textContent=fmt(m.worker_active);$('tasks').textContent=fmt(m.task_queue);$('log-queue').textContent=fmt(m.log_queue);$('dynamic').textContent=fmt(m.dynamic_routes);$('static').textContent=fmt(m.static_files);$('not-found').textContent=fmt(m.not_found);$('failed').textContent=fmt(m.failed);
+  const nowCpu=m.process_cpu_ms, nowTime=m.sample_monotonic_ms;
+  if(lastCpu && Number.isFinite(nowCpu) && nowTime>lastCpu.time && nowCpu>=lastCpu.cpu) $('cpu').textContent=(((nowCpu-lastCpu.cpu)/(nowTime-lastCpu.time))*100).toFixed(1)+'%';
+  else $('cpu').textContent='—';
+  lastCpu=Number.isFinite(nowCpu)&&Number.isFinite(nowTime)?{cpu:nowCpu,time:nowTime}:null;
+  const workers=$('workers');workers.replaceChildren();m.workers.forEach((active,i)=>{const el=document.createElement('div');el.className='worker'+(active?' active':'');const dot=document.createElement('i');el.append(dot,document.createTextNode(String(i+1).padStart(2,'0')+' · '+(active?'忙碌':'空闲')));workers.append(el)});
+  const list=$('log-list');list.replaceChildren();if(!m.recent_requests.length){const p=document.createElement('p');p.textContent='暂无 HTTP 请求记录。';list.append(p)}else for(const item of m.recent_requests){const p=document.createElement('p');p.textContent=item;list.append(p)}
+  if(lastCompleted!==null && m.completed>lastCompleted){$('flow').classList.add('pulse');clearTimeout(pulseTimer);pulseTimer=setTimeout(()=>$('flow').classList.remove('pulse'),550)}
+  lastCompleted=m.completed;
+  $('connection-status').className='live';$('connection-status').innerHTML='<i></i> 服务已连接';$('updated').textContent='更新于 '+new Date().toLocaleTimeString('zh-CN',{hour12:false});
+}
+async function poll(){if(polling || document.hidden)return;polling=true;try{const r=await fetch('/api/monitor',{cache:'no-store'});if(!r.ok)throw Error('HTTP '+r.status);display(await r.json())}catch(e){$('connection-status').className='live offline';$('connection-status').innerHTML='<i></i> 无法连接';$('updated').textContent='保留上一次数据，请检查服务'}finally{polling=false}}
+$('test-button').addEventListener('click',async()=>{if(testRunning)return;testRunning=true;$('test-button').disabled=true;$('test-result').textContent='正在发送本机请求…';const start=performance.now();try{const results=await Promise.allSettled(Array.from({length:12},async()=>{const r=await fetch('/api/ping',{cache:'no-store'});const text=await r.text();let body;try{body=JSON.parse(text)}catch(e){body=null}return {ok:r.ok,status:r.status,route:r.headers.get('X-Route-Type'),pattern:r.headers.get('X-Route-Pattern'),body};}));const success=results.filter(x=>x.status==='fulfilled'&&x.value.ok&&x.value.body&&x.value.body.message==='pong!').length;const first=results.find(x=>x.status==='fulfilled');$('test-result').textContent=`完成 ${success} / 12 · 总耗时 ${Math.round(performance.now()-start)} ms`;if(first){const v=first.value;$('exchange-detail').textContent=`GET /api/ping · HTTP ${v.status} · 路由 ${v.route==='dynamic'?'动态':'未识别'} ${v.pattern||'（无匹配信息）'}`;$('exchange-body').hidden=false;$('exchange-body').textContent=JSON.stringify(v.body,null,2)??'无法解析响应';}else{$('exchange-detail').textContent='请求失败，未收到服务器响应。';$('exchange-body').hidden=true}await poll()}catch(e){$('test-result').textContent='测试未完成，请检查服务'}finally{testRunning=false;$('test-button').disabled=false}});
+document.addEventListener('visibilitychange',()=>{if(!document.hidden)poll()});poll();setInterval(poll,1000);

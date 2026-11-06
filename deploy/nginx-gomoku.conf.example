@@ -1,0 +1,47 @@
+# Example only: substitute domain and certificate paths; validate with nginx -t.
+# Include limit_*_zone directives in the http context, not inside server.
+limit_req_zone $binary_remote_addr zone=gomoku_requests:10m rate=10r/s;
+limit_req_zone $binary_remote_addr zone=gomoku_sessions:10m rate=2r/m;
+limit_req_zone $binary_remote_addr zone=gomoku_auth:10m rate=5r/m;
+limit_conn_zone $binary_remote_addr zone=gomoku_connections:10m;
+server {
+    listen 443 ssl;
+    server_name game.example.com;
+    ssl_certificate /etc/letsencrypt/live/game.example.com/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/game.example.com/privkey.pem;
+    client_max_body_size 16k;
+    client_header_timeout 10s;
+    client_body_timeout 10s;
+    limit_conn gomoku_connections 20;
+    limit_req_status 429;
+    add_header X-Content-Type-Options nosniff always;
+    location = /api/monitor { return 404; }
+    location = /monitor.html { return 404; }
+    location = /monitor.js { return 404; }
+    location = /monitor.css { return 404; }
+    location = /playful-monitor.css { return 404; }
+    location ~ ^/api/auth/(login|register)$ {
+        limit_req zone=gomoku_auth burst=3 nodelay;
+        proxy_pass http://127.0.0.1:8080;
+        proxy_set_header Host $host;
+        proxy_set_header Origin $http_origin;
+        proxy_connect_timeout 3s;
+        proxy_read_timeout 50s;
+    }
+    location = /api/session {
+        limit_req zone=gomoku_sessions burst=4 nodelay;
+        proxy_pass http://127.0.0.1:8080;
+        proxy_set_header Host $host;
+        proxy_set_header Origin $http_origin;
+        proxy_connect_timeout 3s;
+        proxy_read_timeout 50s;
+    }
+    location / {
+        limit_req zone=gomoku_requests burst=20 nodelay;
+        proxy_pass http://127.0.0.1:8080;
+        proxy_set_header Host $host;
+        proxy_set_header Origin $http_origin;
+        proxy_connect_timeout 3s;
+        proxy_read_timeout 50s;
+    }
+}
