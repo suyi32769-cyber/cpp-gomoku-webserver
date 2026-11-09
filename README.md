@@ -13,7 +13,6 @@ bash setup-linux.sh
 bash start-linux.sh
 ```
 
-浏览器访问 `http://127.0.0.1:8080/`。FiveChess 本地 AI 不需要 API Key。可选 DeepSeek 密钥仅在本机配置，切勿提交。
 
 ## 测试
 
@@ -21,6 +20,6 @@ bash start-linux.sh
 
 ## 来源与许可
 
-基于 [Cpp-High-Performance-WebServer](https://github.com/xueruichan/Cpp-High-Performance-WebServer) 扩展；本地 AI 集成 [FiveChess](https://github.com/kimlongli/FiveChess)，许可见 `third_party/FiveChess/LICENSE.txt`。
+本地 AI 集成 [FiveChess](https://github.com/kimlongli/FiveChess)，许可见 `third_party/FiveChess/LICENSE.txt`。
 
 项目含公开访问保护功能，但公网部署仍需单独配置 HTTPS、服务守护、备份及安全策略。
